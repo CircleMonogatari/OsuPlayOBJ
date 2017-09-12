@@ -57,7 +57,7 @@ void Mainosu::createWidgits()
      model = new QStandardItemModel;
      model->setHorizontalHeaderLabels(QStringList()<<QStringLiteral("Name"));
     //关联
-    treeinit();
+    //treeinit();
 
 
     QBoxLayout *treeLayout = new QHBoxLayout;
@@ -127,16 +127,21 @@ void Mainosu::openfile()
 
         qDebug()<< file_count;
         for(int i = 2; i < file_count; ++i){
-            qDebug()<< S_filepath +"/"+list[i].fileName();
+
+            QStandardItem *item = new QStandardItem(list[i].fileName());
+            model->setItem(i-2,0, item);
+
+            //qDebug()<< S_filepath +"/"+list[i].fileName();
             QDir d(S_filepath +"/"+list[i].fileName());
             if(d.exists()){
                 d.setFilter(QDir::Files);
                 QFileInfoList filelist     = d.entryInfoList();
                 int count = filelist.count();
-                qDebug()<<"dir->son:\n";
-                qDebug()<< count;
+                //qDebug()<<"dir->son:\n";
+                //qDebug()<< count;
             }
         }
+        this->treedir->setModel(model);
     }
 
     //拿到所有文件列表
