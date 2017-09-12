@@ -126,13 +126,15 @@ void Mainosu::openfile()
         int file_count = list.count();
 
         qDebug()<< file_count;
-        for(int i = 0; i < file_count; ++i){
-            qDebug()<< list[i].fileName();
-            QDir d(list[i].fileName());
-            d.setFilter(QDir::Files);
-            QFileInfoList list = d.entryInfoList();
-            for(int j =0; d.entryInfoList().count(); ++j){
-                qDebug()<<d.entryInfoList()[i].fileName();
+        for(int i = 2; i < file_count; ++i){
+            qDebug()<< S_filepath +"/"+list[i].fileName();
+            QDir d(S_filepath +"/"+list[i].fileName());
+            if(d.exists()){
+                d.setFilter(QDir::Files);
+                QFileInfoList filelist     = d.entryInfoList();
+                int count = filelist.count();
+                qDebug()<<"dir->son:\n";
+                qDebug()<< count;
             }
         }
     }
@@ -140,8 +142,6 @@ void Mainosu::openfile()
     //拿到所有文件列表
     //addtreeviewer
     //clear tree
-
-    this->treedir->deleteLater();
 }
 
 void Mainosu::playUrl(const QUrl &url)
