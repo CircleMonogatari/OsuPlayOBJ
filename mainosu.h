@@ -1,6 +1,7 @@
 #ifndef MAINOSU_H
 #define MAINOSU_H
 
+#include <QApplication>
 #include <QWidget>
 #include <QTreeView>
 #include <QLabel>
@@ -29,6 +30,8 @@
 
 
 
+#define QDBG qDebug()<<__FILE__<<__FUNCTION__<<__LINE__
+
 namespace Ui {
 class Mainosu;
 }
@@ -48,8 +51,14 @@ public:
     void startPlay();
     void openfile();
     void playUrl(const QUrl &url);
-    void setPositionSlider();
+    void setPositionSlider(qint64 position);
     void treeinit();
+    void treedoubleback(const QModelIndex Qmode);
+    void keyReleaseEvent(QKeyEvent *event);
+
+    void updateInfo();
+    void getfiletree();
+
 
 private:
     Ui::Mainosu *ui;
@@ -63,17 +72,28 @@ public:
     QMediaPlayer mediaPlayer;
 
     QAbstractButton *playBtn = NULL;
-    QAbstractButton * volumeBtn = NULL;
+    VolumeButton * volumeBtn = NULL;
     QSlider *positionSlidet = NULL;
     QLabel *infoLabel = NULL;
     QLabel *positionLabel = NULL;
+    qint64 duration_end;
+
     QPoint offset;
     QString fileName;
+    int file_count;
+    int mark_poi;
+    int mark_max;
 
 
+
+public slots:
+    void updateDuration(qint64 duration);
+    void updatePosition(qint64 position);
 protected:
 void paintEvent(QPaintEvent *);
 QString S_filepath;
+int H_tree_num;
+int H_tree_max;
 };
 
 #endif // MAINOSU_H

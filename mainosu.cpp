@@ -1,18 +1,86 @@
 #include "mainosu.h"
 #include <QDir>
-
+#include <QMessageBox>
 #include <QDirModel>
+#include <QTime>
+#include <QDesktopServices>
 
 Mainosu::Mainosu(QWidget *parent) :
     QWidget(parent)
 {
-
    //创建窗口
     createWidgits();
-
-
-
+   //关联medilplay
+    connect(&mediaPlayer, &QMediaPlayer::positionChanged, this, &Mainosu::updatePosition);
+    connect(&mediaPlayer, &QMediaPlayer::durationChanged, this, &Mainosu::updateDuration);
+    //connect(&mediaPlayer, &QMediaObject::metaDataAvailableChanged, this, &Mainosu::updateInfo);
+   getfiletree();
 }
+
+
+static QString formatTime(qint64 timeMilliSeconds)
+{
+    qint64 seconds = timeMilliSeconds / 1000;
+    const qint64 minutes = seconds / 60;
+    seconds -= minutes * 60;
+    return QStringLiteral("%1:%2")
+        .arg(minutes, 2, 10, QLatin1Char('0'))
+        .arg(seconds, 2, 10, QLatin1Char('0'));
+}
+
+void Mainosu::updatePosition(qint64 position)
+{
+    positionSlidet->setValue(position);
+    positionLabel->setText(formatTime(position));
+
+    if((duration_end == position) &&(position > 0)){
+        qDebug()<<"play end";
+        mark_poi+=1;
+        if (mark_poi == mark_max){
+            mark_poi = 0;
+        }
+
+        QTime t;
+        t.start();
+        while(t.elapsed()<2000);
+
+        //缺少更换treeviewr高亮
+       // model->SelectionMode();
+        model->setSortRole(mark_poi);
+
+
+        QModelIndex i = model->index(mark_poi, 0);
+        qDebug()<<model->data(i, Qt::DisplayRole).toString();
+        QString s = model->data(i, Qt::DisplayRole).toString();
+
+        QDir q(S_filepath+"/"+s);
+            q.setFilter(QDir::Files);
+            QFileInfoList list = q.entryInfoList();
+            for(int i = 0; i < list.count(); ++i){
+               qDebug()<< list[i].fileName();
+               qDebug()<< list[i].filePath();
+               QString pat(list[i].fileName());
+               if (pat.contains("mp3", Qt::CaseSensitive)){
+                   playUrl(list[i].filePath());
+                   playBtn->setIcon(style()->standardIcon(QStyle::SP_MediaPause));
+                   break;
+                 }
+            }
+    }
+}
+
+void Mainosu::updateDuration(qint64 duration)
+{
+    positionSlidet->setRange(0, duration);
+    positionSlidet->setEnabled(duration > 0);
+    positionSlidet->setPageStep(duration / 10);
+    duration_end = duration;
+    //updateInfo();
+    qDebug()<<"update";
+}
+
+
+
 
 Mainosu::~Mainosu()
 {
@@ -21,10 +89,10 @@ Mainosu::~Mainosu()
 
 void Mainosu::createWidgits()
 {
+    H_tree_max = 0;
+    H_tree_num = 0;
     //play
     playBtn = new QToolButton(this);
-    playBtn->setEnabled(false);
-    QIcon qi;
     playBtn->setIcon(style()->standardIcon(QStyle::SP_MediaPlay));
     playBtn->setToolTip(QString("play"));
     connect(playBtn, &QAbstractButton::clicked, this, &Mainosu::startPlay);
@@ -34,10 +102,14 @@ void Mainosu::createWidgits()
     openBtn->setText(QString("..."));
     openBtn->setToolTip(QString("Open a file"));
     openBtn->setFixedSize(playBtn->sizeHint());
+
     connect(openBtn, &QAbstractButton::clicked, this, &Mainosu::openfile);
 
     //vol
     volumeBtn = new VolumeButton(this);
+    volumeBtn->setToolTip(tr("Adjust volume"));
+    volumeBtn->setVolume(mediaPlayer.volume());
+    connect(volumeBtn, &VolumeButton::volumeChanged, &mediaPlayer, &QMediaPlayer::setVolume);
 
     //Slider
     positionSlidet = new QSlider(Qt::Horizontal, this);
@@ -52,12 +124,16 @@ void Mainosu::createWidgits()
     //treedir
      treedir = new QTreeView(this);
      treedir->setMinimumSize(300,400);
-
+     treedir->setEditTriggers(QAbstractItemView::NoEditTriggers);
 
      model = new QStandardItemModel;
      model->setHorizontalHeaderLabels(QStringList()<<QStringLiteral("Name"));
     //关联
     //treeinit();
+    // connect(treedir, &QTreeView::doubleClicked(QModelIndex), this, &Mainosu::treedoubleback(const QModelIndex));
+
+    // connect(treedir,SIGNAL(doubleClicked ( const QModelIndex)),this,SLOT(treedoubleback(const QModelIndex)));
+     connect(treedir, &QTreeView::doubleClicked, this, &Mainosu::treedoubleback);
 
 
     QBoxLayout *treeLayout = new QHBoxLayout;
@@ -82,7 +158,6 @@ void Mainosu::createWidgits()
      DownFile->addWidget(infoLabel);
      DownFile->addLayout(mainLayout);
 
-
 }
 
 void Mainosu::createShortcuts()
@@ -99,48 +174,62 @@ void Mainosu::createTaskbar()
 void Mainosu::startPlay()
 {
     //开始你的表演
-
-
+    if (mediaPlayer.mediaStatus() == QMediaPlayer::NoMedia)
+        //openFile();
+        qDebug()<<"没有歌曲";
+    else if (mediaPlayer.state() == QMediaPlayer::PlayingState)
+      {
+        mediaPlayer.pause();
+        qDebug()<<"pause";
+        playBtn->setIcon(style()->standardIcon(QStyle::SP_MediaPlay));
+     }
+    else{
+        mediaPlayer.play();
+        playBtn->setIcon(style()->standardIcon(QStyle::SP_MediaPause));
+        }
 }
 
 void Mainosu::openfile()
 {
     //打开osu对应的音乐列表
     QFileDialog fileDialog(this);
-    //fileDialog.setAcceptMode(QFileDialog::AcceptOpen);
-    //fileDialog.setWindowTitle(QString("Open OSU file dir"));
-   // fileDialog.setDirectory(QStandardPaths::standardLocations(QStandardPaths::MusicLocation).value(0, QDir::homePath()));
-
     fileDialog.setFileMode(QFileDialog::DirectoryOnly);
-
     if (fileDialog.exec() == QDialog::Accepted)
     {
-       //playUrl(fileDialog.selectedUrls().constFirst());
 
         S_filepath =  fileDialog.selectedFiles().constFirst();
         qDebug() << S_filepath;
 
+            //out
+        QFile file("./config");
+        if(!file.open(QFile::WriteOnly | QFile::Text))
+            {
+               qDebug () << "getfiletree ERROR";
+               return;
+            }
+            QTextStream out(&file);
+            //输出内容到缓冲区
+            out << S_filepath;
+            file.flush();//将缓冲区的内容输出的文本
+            file.close();//关闭文件
+
+
+
         QDir dir(fileDialog.selectedFiles().constFirst());
         dir.setFilter(QDir::Dirs);
         QFileInfoList list = dir.entryInfoList();
-        int file_count = list.count();
+        file_count = list.count();
 
+        mark_max = file_count;
         qDebug()<< file_count;
+        H_tree_max = file_count;
         for(int i = 2; i < file_count; ++i){
 
             QStandardItem *item = new QStandardItem(list[i].fileName());
             model->setItem(i-2,0, item);
 
-            //qDebug()<< S_filepath +"/"+list[i].fileName();
-            QDir d(S_filepath +"/"+list[i].fileName());
-            if(d.exists()){
-                d.setFilter(QDir::Files);
-                QFileInfoList filelist     = d.entryInfoList();
-                int count = filelist.count();
-                //qDebug()<<"dir->son:\n";
-                //qDebug()<< count;
             }
-        }
+
         this->treedir->setModel(model);
     }
 
@@ -159,9 +248,10 @@ void Mainosu::playUrl(const QUrl &url)
     mediaPlayer.play();
 }
 
-void Mainosu::setPositionSlider()
+void Mainosu::setPositionSlider(qint64 position)
 {
-
+    if (qAbs(mediaPlayer.position() - position) > 99)
+        mediaPlayer.setPosition(position);
 }
 
 void Mainosu::treeinit()
@@ -190,12 +280,106 @@ void Mainosu::treeinit()
 
 }
 
+void Mainosu::treedoubleback(const QModelIndex index)
+{
+
+    qDebug()<<"treedoubleback singa";
+    mark_poi = index.row();
+    qDebug()<< index.row();
+    QAbstractItemModel* m=(QAbstractItemModel*)index.model();
+    for(int columnIndex = 0; columnIndex < m->columnCount(); columnIndex++)
+    {
+        QModelIndex x=m->index(index.row(),columnIndex);
+
+        QString s= x.data().toString();
+
+        QDir q(S_filepath+"/"+s);
+        q.setFilter(QDir::Files);
+        QFileInfoList list = q.entryInfoList();
+        for(int i = 0; i < list.count(); ++i){
+           qDebug()<< list[i].fileName();
+           qDebug()<< list[i].filePath();
+           QString pat(list[i].fileName());
+           if (pat.contains("mp3", Qt::CaseSensitive)){
+               playUrl(list[i].filePath());
+               playBtn->setIcon(style()->standardIcon(QStyle::SP_MediaPause));
+               break;
+           }
+        }
+    }
+}
+
+void Mainosu::keyReleaseEvent(QKeyEvent *e)
+{
+
+
+}
+
+void Mainosu::updateInfo()
+{
+    QStringList info;
+    if (!fileName.isEmpty())
+        info.append(fileName);
+    if (mediaPlayer.isMetaDataAvailable()) {
+        QString author = mediaPlayer.metaData(QStringLiteral("Author")).toString();
+        if (!author.isEmpty())
+            info.append(author);
+        QString title = mediaPlayer.metaData(QStringLiteral("Title")).toString();
+        if (!title.isEmpty())
+            info.append(title);
+    }
+    info.append(formatTime(mediaPlayer.duration()));
+    infoLabel->setText(info.join(tr(" - ")));
+
+}
+
+void Mainosu::getfiletree()
+{
+
+   //in
+       QFile filew("./config");
+          //以只读和文本的方式打开该文件
+          if(!filew.open(QFile::ReadOnly | QFile::Text))
+          {
+             qDebug () << "getfiletree ERROR";
+             return;
+          }
+          QTextStream in(&filew);
+          //输出内容到缓冲区
+
+            QString sbuf;
+            sbuf = in.readAll();
+            qDebug()<<sbuf;
+
+
+            S_filepath = sbuf;
+            QDir dir(sbuf);
+            dir.setFilter(QDir::Dirs);
+            QFileInfoList list = dir.entryInfoList();
+            file_count = list.count();
+            mark_max = file_count;
+            qDebug()<< file_count;
+            H_tree_max = file_count;
+            for(int i = 2; i < file_count; ++i){
+
+                QStandardItem *item = new QStandardItem(list[i].fileName());
+                model->setItem(i-2,0, item);
+
+                }
+            this->treedir->setModel(model);
+          filew.flush();//将缓冲区的内容输出的文本
+          filew.close();//关闭文件
+}
+
+
+
+
 
 void Mainosu::paintEvent(QPaintEvent *)
 {
     QPainter painter(this);
         QPixmap pix;
-        pix.load("C:/Users/Circle/Desktop/123.png");
+        pix.load("./bj.png");
         painter.drawPixmap(0, 0, 650, 600, pix);
 
 }
