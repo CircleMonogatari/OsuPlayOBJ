@@ -27,7 +27,7 @@
 #include <QUrl>
 #include <QWinTaskbarButton>
 #include "volumebutton.h"
-
+#include "config_num.h"
 
 
 #define QDBG qDebug()<<__FILE__<<__FUNCTION__<<__LINE__

@@ -125,9 +125,11 @@ void Mainosu::createWidgits()
      treedir = new QTreeView(this);
      treedir->setMinimumSize(300,400);
      treedir->setEditTriggers(QAbstractItemView::NoEditTriggers);
-
+     treedir->setColumnWidth(0,1);
      model = new QStandardItemModel;
-     model->setHorizontalHeaderLabels(QStringList()<<QStringLiteral("Name"));
+     model->setHorizontalHeaderLabels(QStringList()<<QStringLiteral("")<<QStringLiteral("filename"));
+
+
     //关联
     //treeinit();
     // connect(treedir, &QTreeView::doubleClicked(QModelIndex), this, &Mainosu::treedoubleback(const QModelIndex));
@@ -363,10 +365,11 @@ void Mainosu::getfiletree()
             for(int i = 2; i < file_count; ++i){
 
                 QStandardItem *item = new QStandardItem(list[i].fileName());
-                model->setItem(i-2,0, item);
+                model->setItem(i-2,1, item);
 
                 }
             this->treedir->setModel(model);
+            this->treedir->setColumnWidth(0,30);
           filew.flush();//将缓冲区的内容输出的文本
           filew.close();//关闭文件
 }

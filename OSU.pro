@@ -26,11 +26,13 @@ DEFINES += QT_DEPRECATED_WARNINGS
 SOURCES += \
         main.cpp \
         mainosu.cpp \
-    volumebutton.cpp
+    volumebutton.cpp \
+    config_num.cpp
 
 HEADERS += \
         mainosu.h \
-    volumebutton.h
+    volumebutton.h \
+    config_num.h
 
 #FORMS += \
 #       mainosu.ui
