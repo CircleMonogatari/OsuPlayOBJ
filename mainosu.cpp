@@ -35,6 +35,7 @@ void Mainosu::updatePosition(qint64 position)
 
     if((duration_end == position) &&(position > 0)){
         qDebug()<<"play end";
+        item_temp->setBackground(QBrush(QColor("white")));
         mark_poi+=1;
         if (mark_poi == mark_max){
             mark_poi = 0;
@@ -43,11 +44,10 @@ void Mainosu::updatePosition(qint64 position)
         QTime t;
         t.start();
         while(t.elapsed()<2000);
-
-        //缺少更换treeviewr高亮
-       // model->SelectionMode();
         model->setSortRole(mark_poi);
 
+        item_temp = model->item(mark_poi);
+        item_temp->setBackground(QBrush(QColor("red")));
 
         QModelIndex i = model->index(mark_poi, 0);
         qDebug()<<model->data(i, Qt::DisplayRole).toString();
@@ -62,6 +62,7 @@ void Mainosu::updatePosition(qint64 position)
                QString pat(list[i].fileName());
                if (pat.contains("mp3", Qt::CaseSensitive)){
                    playUrl(list[i].filePath());
+                   item_temp->setBackground(QBrush(QColor("green")));
                    playBtn->setIcon(style()->standardIcon(QStyle::SP_MediaPause));
                    break;
                  }
@@ -97,6 +98,13 @@ void Mainosu::createWidgits()
     playBtn->setToolTip(QString("play"));
     connect(playBtn, &QAbstractButton::clicked, this, &Mainosu::startPlay);
 
+    //setPlaybackRate(qreal rate)
+    QAbstractButton *backRate_btn = new QToolButton(this);
+    backRate_btn->setText(QString("1.5"));
+    backRate_btn->setToolTip(QString("PlaybackRate"));
+    connect(backRate_btn, &QAbstractButton::clicked, this, &Mainosu::startPlay);
+
+
     //file
     QAbstractButton *openBtn = new QToolButton(this);
     openBtn->setText(QString("..."));
@@ -125,9 +133,9 @@ void Mainosu::createWidgits()
      treedir = new QTreeView(this);
      treedir->setMinimumSize(300,400);
      treedir->setEditTriggers(QAbstractItemView::NoEditTriggers);
-     treedir->setColumnWidth(0,1);
      model = new QStandardItemModel;
-     model->setHorizontalHeaderLabels(QStringList()<<QStringLiteral("")<<QStringLiteral("filename"));
+
+     model->setHorizontalHeaderLabels(QStringList()<<QStringLiteral("filename"));
 
 
     //关联
@@ -146,6 +154,7 @@ void Mainosu::createWidgits()
     QBoxLayout *controlLayout = new QHBoxLayout;
     controlLayout->setMargin(0);
     controlLayout->addWidget(openBtn);
+    controlLayout->addWidget(backRate_btn);
     controlLayout->addWidget(playBtn);
     controlLayout->addWidget(positionSlidet);
     controlLayout->addWidget(positionLabel);
@@ -284,17 +293,23 @@ void Mainosu::treeinit()
 
 void Mainosu::treedoubleback(const QModelIndex index)
 {
+    if(item_temp != NULL){
+         item_temp->setBackground(QBrush(QColor("white")));
+    }
 
     qDebug()<<"treedoubleback singa";
     mark_poi = index.row();
     qDebug()<< index.row();
+    item_temp = model->item(mark_poi);
+    item_temp->setBackground(QBrush(QColor("red")));
+
+
     QAbstractItemModel* m=(QAbstractItemModel*)index.model();
     for(int columnIndex = 0; columnIndex < m->columnCount(); columnIndex++)
     {
         QModelIndex x=m->index(index.row(),columnIndex);
 
         QString s= x.data().toString();
-
         QDir q(S_filepath+"/"+s);
         q.setFilter(QDir::Files);
         QFileInfoList list = q.entryInfoList();
@@ -304,6 +319,7 @@ void Mainosu::treedoubleback(const QModelIndex index)
            QString pat(list[i].fileName());
            if (pat.contains("mp3", Qt::CaseSensitive)){
                playUrl(list[i].filePath());
+               item_temp->setBackground(QBrush(QColor("green")));
                playBtn->setIcon(style()->standardIcon(QStyle::SP_MediaPause));
                break;
            }
@@ -315,6 +331,14 @@ void Mainosu::keyReleaseEvent(QKeyEvent *e)
 {
 
 
+}
+
+void Mainosu::PlaybackRate()
+{
+    //qreal rate;
+
+    qreal rate = 2;
+    mediaPlayer.setPlaybackRate(rate);
 }
 
 void Mainosu::updateInfo()
@@ -365,7 +389,7 @@ void Mainosu::getfiletree()
             for(int i = 2; i < file_count; ++i){
 
                 QStandardItem *item = new QStandardItem(list[i].fileName());
-                model->setItem(i-2,1, item);
+                model->setItem(i-2,0, item);
 
                 }
             this->treedir->setModel(model);

@@ -55,6 +55,7 @@ public:
     void treeinit();
     void treedoubleback(const QModelIndex Qmode);
     void keyReleaseEvent(QKeyEvent *event);
+    void PlaybackRate();
 
     void updateInfo();
     void getfiletree();
@@ -78,6 +79,7 @@ public:
     QLabel *positionLabel = NULL;
     qint64 duration_end;
 
+    QStandardItem *item_temp = NULL;
     QPoint offset;
     QString fileName;
     int file_count;

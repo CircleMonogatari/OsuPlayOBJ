@@ -2,6 +2,7 @@
 #define CONFIG_NUM_H
 #include <QPoint>
 #include <QString>
+#include <QStandardItem>
 
 class config_num
 {
@@ -19,6 +20,7 @@ public:
     int volnum;
     int H_tree_num;
     int H_tree_max;
+    QStandardItem *item_temp;
 };
 
 #endif // CONFIG_NUM_H
